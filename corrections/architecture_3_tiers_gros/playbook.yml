@@ -1,0 +1,11 @@
+---
+- hosts: db*
+  roles:
+    - common
+    - database_servers
+
+- hosts: web*
+  roles:
+    - common
+    - web_servers
+  

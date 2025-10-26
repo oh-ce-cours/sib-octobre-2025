@@ -1,0 +1,12 @@
+---
+- hosts: all
+  # serial: 2
+  strategy: free
+  tasks:
+  - name: Update packages 
+    apt:
+      update_cache: yes 
+      upgrade: yes
+      autoclean: yes
+      autoremove: yes
+    become: yes

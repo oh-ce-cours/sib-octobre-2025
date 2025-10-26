@@ -1,0 +1,27 @@
+---
+- hosts: db*
+  tasks:
+  - name: Add mongo public key
+    apt_key:
+      url: https://www.mongodb.org/static/pgp/server-7.0.asc
+      state: present
+    become: yes
+
+  - name: Add mongo sources list
+    become: yes
+    lineinfile:
+      line: "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/6.0 multiverse"
+      dest: "/etc/apt/sources.list.d/mongodb.list"
+      state: "present"
+      create: "yes"
+  - name: install packages
+    package:
+      name: 
+        - mongodb
+        - mariadb-server
+      state: present
+    become: yes 
+  - name: Start MariaDB
+    service: name=mysql state=started enabled=yes
+  - name: Start Mongo
+    service: name=mongodb state=started enabled=yes

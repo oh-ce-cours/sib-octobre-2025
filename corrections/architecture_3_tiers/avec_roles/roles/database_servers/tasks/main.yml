@@ -1,0 +1,30 @@
+- name: Add mongo public key
+  apt_key:
+    url: https://www.mongodb.org/static/pgp/server-7.0.asc
+    state: present
+  become: yes
+
+- name: Add mongo sources list
+  become: yes
+  lineinfile:
+    line: "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/6.0 multiverse"
+    dest: "/etc/apt/sources.list.d/mongodb.list"
+    state: "present"
+    create: "yes"
+
+- name: install packages
+  apt:
+    name: 
+      - mongodb-org
+      - mariadb-server
+    state: present
+    update_cache: yes
+  become: yes 
+
+- name: Start MariaDB
+  service: name=mariadb state=started enabled=yes
+  become: yes
+
+- name: Start Mongo
+  service: name=mongod.service state=started enabled=yes
+  become: yes

@@ -1,0 +1,11 @@
+---
+- hosts: db*
+  tasks:
+  - name: install packages
+    package:
+      name: 
+        - nginx
+      state: present
+    become: yes 
+  - name: Start NGINX
+    service: name=nginx state=started enabled=yes

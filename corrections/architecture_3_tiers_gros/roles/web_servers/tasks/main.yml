@@ -1,0 +1,30 @@
+- name: install packages
+  apt:
+    name: 
+      - nginx
+    state: present
+    update_cache: yes
+  become: yes 
+
+- name: Config nginx
+  template:
+    src: nginx.conf
+    dest: /etc/nginx/sites-available/it_works_ansible.cfg
+  become: yes
+
+- name: Install site (symlink)
+  file:
+    src: /etc/nginx/sites-available/it_works_ansible.cfg
+    dest: /etc/nginx/sites-enabled/default
+    state: link
+  become: yes
+
+- name: Copy site
+  template:
+    src: index.html
+    dest: /var/www/html/index.html
+  become: yes
+
+- name: Start MGINX
+  service: name=nginx state=started enabled=yes
+  become: yes

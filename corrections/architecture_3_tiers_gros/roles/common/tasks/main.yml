@@ -1,0 +1,32 @@
+- name: install packages
+  package:
+    name: 
+      - vim
+      - zsh
+    state: present
+  become: yes 
+- name: Add sudo group
+  group: name=sudo state=present
+  become: yes
+- name: Add app user
+  user: 
+    name: "app"
+    state: present
+    # créé avec mkpasswd --method=sha-512
+    password: "$6$4YeiaEMnW73K.zzo$fyFlziHfTL1iybslB4gq/twJBX5R5QoAQE5xfW1OALb8wFA5IAk99ZQQ3rC83WH7WATzbWn7iiYYIa5trijdz0"
+    shell: "/usr/bin/zsh"
+    groups: "sudo"
+  become: yes
+  become_method: "sudo"
+- name: Copy template file
+  template:
+    src: zshrc.j2
+    dest: /home/app/.zshrc
+    owner: app
+  become: yes
+- name: Ensure alias is set in app zsh config
+  lineinfile:
+    path: /home/app/.zshrc
+    regexp: '^alias lt='
+    line: "alias lt='ls --human-readable --size -1 -S --classify'"
+  become: yes

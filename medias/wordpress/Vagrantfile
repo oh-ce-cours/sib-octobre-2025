@@ -1,0 +1,45 @@
+VAGRANTFILE_API_VERSION = "2"
+BOX_IMAGE = "bento/ubuntu-24.04"
+NODE_COUNT = 1
+ENV['VAGRANT_DEFAULT_PROVIDER'] = 'virtualbox'
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  (1..NODE_COUNT).each do |i|
+    config.vm.define "web#{i}" do |subconfig|
+      subconfig.vm.box = BOX_IMAGE
+      subconfig.vm.hostname = "web#{i}"
+      subconfig.vm.network :private_network, ip: "192.168.56.#{i + 10}"
+      config.vm.network "forwarded_port", guest: 80, host: 9898, auto_correct: true
+      config.vm.usable_port_range = 9800..10000
+    end
+  end
+
+  config.vm.provider :virtualbox do |vb|
+    vb.customize [
+      'modifyvm', :id,
+      '--natdnshostresolver1', 'on',
+      '--memory', '1024',
+      '--cpus', '2'
+    ]
+  end
+end
+
+
+# Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+#   (1..NODE_COUNT).each do |i|
+#     config.vm.define "db#{i}" do |subconfig|
+#       subconfig.vm.box = BOX_IMAGE
+#       subconfig.vm.hostname = "db#{i}"
+#       subconfig.vm.network :private_network, ip: "10.0.0.#{i + 20}"
+#     end
+#   end
+
+#   config.vm.provider :virtualbox do |vb|
+#     vb.customize [
+#       'modifyvm', :id,
+#       '--natdnshostresolver1', 'on',
+#       '--memory', '512',
+#       '--cpus', '1'
+#     ]
+#   end
+# end

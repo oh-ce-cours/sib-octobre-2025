@@ -1,0 +1,42 @@
+- name: install DB packages
+  package:
+    name: 
+      - mysql-server
+    state: present
+  become: yes 
+
+# from : https://stackoverflow.com/questions/25136498/ansible-answers-to-mysql-secure-installation
+- name: Adds Python MySQL support on Debian/Ubuntu
+  apt: pkg="python-mysqldb" state=present
+  when: ansible_os_family == 'Debian'
+
+- name: Adds Python MySQL support on RedHat/CentOS
+  yum: name=MySQL-python state=present
+  when: ansible_os_family == 'RedHat'
+
+
+## Setting the root password
+- name: Sets the root password 
+  mysql_user: user=root password="{{ mysql_root_password }}" host=localhost
+
+
+## Removing anonymous users
+- name: Deletes anonymous MySQL server user for ansible_fqdn
+  mysql_user: user="" host="{{ ansible_fqdn }}" state="absent"
+
+- name: Deletes anonymous MySQL server user for localhost
+  mysql_user: user="" state="absent"
+
+
+## Removing root remote access
+- name: Secures the MySQL root user for IPV6 localhost (::1)
+  mysql_user: user="root" password="{{ mysql_root_password }}" host="::1"
+
+- name: Secures the MySQL root user for IPV4 localhost (127.0.0.1)
+  mysql_user: user="root" password="{{ mysql_root_password }}" host="127.0.0.1"
+
+- name: Secures the MySQL root user for localhost domain (localhost)
+  mysql_user: user="root" password="{{ mysql_root_password }}" host="localhost"
+
+- name: Secures the MySQL root user for server_hostname domain
+  mysql_user: user="root" password="{{ mysql_root_password }}" host="{{ ansible_fqdn }}"

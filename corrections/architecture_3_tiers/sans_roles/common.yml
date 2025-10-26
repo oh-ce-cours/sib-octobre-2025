@@ -1,0 +1,31 @@
+---
+- hosts: all
+  tasks:
+  - name: install packages
+    package:
+      name: 
+        - vim
+        - zsh
+      state: present
+    become: yes 
+  - group: name=sudo state=present
+  - name: Add app user
+    user: 
+      name: "app"
+      state: present
+      password: "hunter2"
+      shell: "/usr/bin/zsh"
+    become: yes
+    become_method: "sudo"
+  - name: Copy template file
+    template:
+      src: zshrc.j2
+      dest: /home/app/.zshrc
+      owner: app
+    become: yes
+  - name: Ensure alias is set in app zsh config
+    lineinfile:
+      path: /home/app/.zshrc
+      regexp: '^alias lt='
+      line: "alias lt='ls --human-readable --size -1 -S --classify'"
+    become: yes
