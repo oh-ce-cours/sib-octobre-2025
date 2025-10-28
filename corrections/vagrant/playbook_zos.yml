@@ -1,0 +1,42 @@
+---
+- name: Recupération output
+  hosts: all
+  tasks:
+    - name: Recupération output
+      ansible.builtin.command: /bin/echo "Hello World"
+      register: output
+      changed_when: false
+    - name: Afficher l'output
+      ansible.builtin.debug:
+        msg: "{{ output }}"
+
+    - name: Copier le fichier user_create.py
+      ansible.builtin.copy:
+        src: user_create.py
+        dest: /home/app/user_create.py
+        owner: vagrant
+        group: vagrant
+        mode: "0755"
+      become: true
+    - name: Exécuter le fichier user_create.py
+      ansible.builtin.command: python3 /home/app/user_create.py
+      register: user_create_output
+      changed_when: true
+      become: true
+    - name: Afficher l'output de user_create.py
+      ansible.builtin.debug:
+        msg: "{{ user_create_output.stdout_lines[-1] | split(' ') }}"
+
+    - name: Créer le dictionnaire à partir de la dernière ligne
+      ansible.builtin.set_fact:
+        user_info: "{{ user_create_output.stdout_lines[-1] | split(' ') }}"
+
+    - name: Créer le dictionnaire final
+      ansible.builtin.set_fact:
+        user_dict:
+          unique_uid: "{{ user_info[0] }}"
+          user_id: "{{ user_info[1] }}"
+
+    - name: Afficher le dictionnaire
+      ansible.builtin.debug:
+        msg: "{{ user_dict }}"

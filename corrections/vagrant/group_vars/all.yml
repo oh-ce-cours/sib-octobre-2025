@@ -1,0 +1,21 @@
+---
+users:
+  - name: toto
+    shell: /bin/zsh
+    password: "{{ 'riri_password' | password_hash(hashtype='sha512', salt='1234') }}"
+  - name: titi
+    shell: /bin/sh
+    password: "{{ 'fifi_password' | password_hash(hashtype='sha512', salt='1234') }}"
+  - name: tutu
+    shell: /bin/bash
+    password: "{{ 'loulou_password' | password_hash(hashtype='sha512', salt='1234') }}"
+  - name: doudou
+    password: "{{ 'donald_password' | password_hash(hashtype='sha512', salt='1234') }}"
+
+user_groups:
+  - name: sudo
+    members:
+      - toto
+      - titi
+      - tutu
+      - doudou
