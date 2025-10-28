@@ -1,0 +1,38 @@
+---
+# 🔧 FICHIER DE CONFIGURATION MOLECULE
+# Ce fichier définit comment Molecule va tester notre rôle
+
+# Définit les dépendances externes (autres rôles nécessaires)
+dependency:
+  name: galaxy
+
+# Définit le driver (comment créer l'environnement de test)
+# Ici on utilise Docker pour créer un conteneur
+driver:
+  name: docker
+
+# Définit les plateformes sur lesquelles tester
+# On peut tester sur plusieurs OS différents !
+platforms:
+  - name: instance  # Nom du conteneur
+    image: geerlingguy/docker-ubuntu2204-ansible:latest  # Image Docker à utiliser
+    pre_build_image: true  # Utiliser l'image telle quelle (ne pas la rebuilder)
+    privileged: true  # Nécessaire pour systemd
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:rw  # Nécessaire pour systemd
+    cgroupns_mode: host  # Nécessaire pour systemd
+    command: /lib/systemd/systemd  # Commande de démarrage
+
+# Définit le provisioner (comment appliquer le rôle)
+provisioner:
+  name: ansible
+  playbooks:
+    converge: converge.yml  # Playbook qui applique le rôle
+    verify: verify.yml      # Playbook qui vérifie le résultat
+  env:
+    ANSIBLE_ROLES_PATH: ${MOLECULE_PROJECT_DIRECTORY}/..
+
+# Définit le verifier (comment vérifier que tout fonctionne)
+verifier:
+  name: ansible
+

@@ -1,0 +1,17 @@
+# Molecule
+.molecule/
+*.pyc
+__pycache__/
+.cache/
+
+# Python
+venv/
+.venv/
+*.egg-info/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+

@@ -1,0 +1,13 @@
+---
+# 🎯 PLAYBOOK DE CONVERGENCE
+# Ce fichier dit à Molecule comment appliquer notre rôle
+# C'est l'équivalent d'un playbook Ansible normal
+
+- name: Converge
+  hosts: all
+  become: true # Utiliser sudo pour les privilèges root
+
+  tasks:
+    - name: "Inclure le rôle nginx-simple"
+      include_role:
+        name: "{{ lookup('env', 'MOLECULE_PROJECT_DIRECTORY') | basename }}"

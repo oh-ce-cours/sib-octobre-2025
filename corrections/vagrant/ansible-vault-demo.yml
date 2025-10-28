@@ -1,0 +1,23 @@
+---
+- name: Vault
+  hosts: all
+  vars_files:
+    - secrets.yml
+  vars:
+    encrypted_password: !vault |
+      $ANSIBLE_VAULT;1.1;AES256
+      31326164326562633532653239643963303332393732653836336266613333643931393437313737
+      6365643635646534313038616561396637646631636339610a623362356635336466663566613533
+      66616338626631643935656530313836323562643132333138613733396239636630616137623861
+      3430633437313538640a303165356537353937366633343662336663643238303061373463633935
+      30666534663962656266613033323533393937646430333734636465343464613638
+  tasks:
+    - name: Show vars (users)
+      ansible.builtin.debug:
+        msg: "{{ users }}"
+    - name: Show vars (password)
+      ansible.builtin.debug:
+        msg: "{{ password }}"
+    - name: Show vars (encrypted_password)
+      ansible.builtin.debug:
+        msg: "{{ encrypted_password }}"

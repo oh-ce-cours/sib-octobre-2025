@@ -1,0 +1,7 @@
+---
+# Variables par défaut du rôle nginx-simple
+# Ces valeurs peuvent être surchargées lors de l'utilisation du rôle
+
+nginx_port: 80
+nginx_index_content: "Hello from Ansible Molecule! 🚀"
+

@@ -1,0 +1,23 @@
+---
+# Tâches principales du rôle nginx-simple
+# Ce fichier contient toutes les actions à effectuer
+
+- name: Installer nginx
+  apt:
+    name: nginx
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"
+
+- name: Créer une page d'accueil personnalisée
+  copy:
+    content: "{{ nginx_index_content }}"
+    dest: /var/www/html/index.html
+    mode: '0644'
+
+- name: S'assurer que nginx est démarré et activé
+  service:
+    name: nginx
+    state: started
+    enabled: yes
+

@@ -1,0 +1,48 @@
+---
+# ✅ PLAYBOOK DE VÉRIFICATION
+# Ce fichier contient les tests pour vérifier que notre rôle a bien fonctionné
+# C'est ici qu'on vérifie que nginx est installé et fonctionne correctement
+
+- name: Verify
+  hosts: all
+  become: true
+
+  tasks:
+    # Test 1 : Vérifier que le package nginx est installé
+    - name: Vérifier que nginx est installé
+      package:
+        name: nginx
+        state: present
+      check_mode: yes
+      register: pkg_check
+      failed_when: pkg_check is changed
+
+    # Test 2 : Vérifier que le service nginx tourne
+    - name: Vérifier que nginx est démarré
+      service:
+        name: nginx
+        state: started
+      check_mode: yes
+      register: svc_check
+      failed_when: svc_check is changed
+
+    # Test 3 : Vérifier que nginx écoute sur le port 80
+    - name: Vérifier que nginx écoute sur le port 80
+      wait_for:
+        port: 80
+        timeout: 5
+
+    # Test 4 : Vérifier que la page d'accueil est accessible
+    - name: Récupérer la page d'accueil
+      uri:
+        url: http://localhost:80
+        return_content: yes
+      register: webpage
+
+    # Test 5 : Vérifier le contenu de la page
+    - name: Vérifier le contenu de la page
+      assert:
+        that:
+          - "'Hello from Ansible Molecule' in webpage.content"
+        fail_msg: "Le contenu de la page ne correspond pas à celui attendu"
+        success_msg: "✅ La page contient bien le texte attendu !"

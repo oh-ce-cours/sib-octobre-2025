@@ -1,0 +1,19 @@
+.
+|-- EXPLICATION_SIMPLE.md
+|-- QUICK_START.md
+|-- README.md
+|-- demo.sh
+|-- nginx-simple
+|   |-- README.md
+|   |-- defaults
+|   |   `-- main.yml
+|   |-- molecule
+|   |   `-- default
+|   |       |-- converge.yml
+|   |       |-- molecule.yml
+|   |       `-- verify.yml
+|   `-- tasks
+|       `-- main.yml
+`-- structure.txt
+
+6 directories, 11 files
