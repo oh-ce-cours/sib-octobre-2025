@@ -1,0 +1,85 @@
+---
+# ============================================================================
+# 🔴 EXEMPLE D'ÉCHEC CONCRET AVEC import_tasks
+# ============================================================================
+#
+# Ce playbook va ÉCHOUER volontairement pour démontrer les limites d'import_tasks
+#
+# OBJECTIF PÉDAGOGIQUE :
+# Montrer qu'on ne peut PAS utiliser une variable définie dynamiquement
+# dans le nom du fichier avec import_tasks
+#
+# ============================================================================
+
+- name: "🔴 DÉMONSTRATION : Échec garanti avec import_tasks"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  tasks:
+    - name: "Étape 1 : Afficher le but de cette démo"
+      ansible.builtin.debug:
+        msg: |
+          🎓 Cette démonstration va ÉCHOUER volontairement.
+
+          OBJECTIF : Montrer qu'import_tasks ne peut PAS utiliser 
+          une variable définie pendant l'exécution.
+
+    - name: "Étape 2 : Définir une variable pendant l'exécution"
+      ansible.builtin.set_fact:
+        nom_fichier_taches: "mes_taches.yml"
+
+    - name: "Étape 3 : Afficher la variable"
+      ansible.builtin.debug:
+        msg: "La variable nom_fichier_taches = {{ nom_fichier_taches }}"
+
+    # ❌❌❌ LA TÂCHE CI-DESSOUS VA ÉCHOUER ❌❌❌
+    - name: "Étape 4 : 🚫 ÉCHEC - Tentative d'import avec variable dynamique"
+      ansible.builtin.import_tasks: "{{ nom_fichier_taches }}"
+      #
+      # ERREUR ATTENDUE :
+      # "The offending line appears to be: ..."
+      # "The variable 'nom_fichier_taches' is not defined"
+      #
+      # POURQUOI ?
+      # import_tasks est évalué au PARSE TIME (avant l'exécution)
+      # À ce moment-là, la variable n'existe pas encore !
+
+    - name: "Étape 5 : Cette tâche ne sera jamais exécutée"
+      ansible.builtin.debug:
+        msg: "Si vous voyez ce message, c'est magique ! 🪄"
+# ============================================================================
+# EXPLICATION POUR L'ÉLÈVE
+# ============================================================================
+#
+# CHRONOLOGIE DE L'ÉCHEC :
+#
+# 1. Ansible PARSE le playbook (avant toute exécution)
+#    ├─> Il voit import_tasks: "{{ nom_fichier_taches }}"
+#    ├─> Il essaie de résoudre la variable
+#    └─> ❌ ERREUR : la variable n'existe pas encore !
+#
+# 2. L'exécution ne commence même pas
+#    └─> Les set_fact ne sont jamais exécutés
+#
+# SOLUTION :
+# Utiliser include_tasks à la place (voir exemple_succes_include.yml)
+#
+# ============================================================================
+
+# Pour comparer, décommentez le play ci-dessous qui FONCTIONNE :
+
+# - name: "✅ VERSION QUI FONCTIONNE avec nom de fichier fixe"
+#   hosts: localhost
+#   connection: local
+#   gather_facts: no
+#
+#   tasks:
+#     - name: "Étape 1 : Définir une variable"
+#       ansible.builtin.set_fact:
+#         nom_fichier_taches: "mes_taches.yml"
+#
+#     - name: "Étape 2 : ✅ Import avec nom fixe (pas de variable)"
+#       ansible.builtin.import_tasks: mes_taches.yml
+#       # Ceci fonctionne car le nom est fixe, pas dynamique
+

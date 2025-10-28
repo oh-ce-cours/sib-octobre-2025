@@ -1,0 +1,227 @@
+---
+# ============================================================================
+# ⚡ COMPARAISON DIRECTE : 2 Minutes pour Comprendre
+# ============================================================================
+#
+# Ce playbook montre LA différence clé en moins de 2 minutes
+# Idéal pour une démonstration rapide en début de cours
+#
+# USAGE : ansible-playbook COMPARAISON_DIRECTE.yml
+#
+# ============================================================================
+
+# ============================================================================
+# 🔴 PLAY 1 : ÉCHEC avec import_tasks
+# ============================================================================
+
+- name: "🔴 ÉCHEC : import_tasks avec variable dynamique"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  tasks:
+    - name: "📝 Définir une variable"
+      ansible.builtin.set_fact:
+        fichier: "taches.yml"
+    
+    # ❌ CECI VA ÉCHOUER
+    - name: "🚫 Import avec variable"
+      ansible.builtin.import_tasks: "{{ fichier }}"
+      # Erreur : variable non définie au parse time
+
+# Si vous voulez continuer après l'échec, commentez le play ci-dessus
+# et décommentez celui ci-dessous :
+
+# ============================================================================
+# ✅ PLAY 2 : SUCCÈS avec include_tasks
+# ============================================================================
+
+# - name: "✅ SUCCÈS : include_tasks avec variable dynamique"
+#   hosts: localhost
+#   connection: local
+#   gather_facts: no
+# 
+#   tasks:
+#     - name: "📝 Créer un fichier de tâches temporaire"
+#       ansible.builtin.copy:
+#         content: |
+#           ---
+#           - name: "Tâche incluse dynamiquement"
+#             ansible.builtin.debug:
+#               msg: "✅ Succès ! J'ai été chargé avec une variable !"
+#         dest: "/tmp/taches_dynamiques.yml"
+#     
+#     - name: "📝 Définir une variable"
+#       ansible.builtin.set_fact:
+#         fichier: "/tmp/taches_dynamiques.yml"
+#     
+#     # ✅ CECI VA RÉUSSIR
+#     - name: "✅ Include avec variable"
+#       ansible.builtin.include_tasks: "{{ fichier }}"
+#       # Succès : variable résolue au run time
+#     
+#     - name: "🧹 Nettoyage"
+#       ansible.builtin.file:
+#         path: "/tmp/taches_dynamiques.yml"
+#         state: absent
+
+# ============================================================================
+# 💡 EXPLICATION EN 30 SECONDES
+# ============================================================================
+#
+# import_tasks :
+#   • Évalué AVANT l'exécution (parse time)
+#   • La variable {{ fichier }} n'existe pas encore
+#   • ❌ ÉCHEC
+#
+# include_tasks :
+#   • Évalué PENDANT l'exécution (run time)
+#   • La variable {{ fichier }} existe déjà
+#   • ✅ SUCCÈS
+#
+# ============================================================================
+# RÈGLE D'OR
+# ============================================================================
+#
+#   Nom de fichier FIXE     →  import_tasks
+#   Nom de fichier VARIABLE →  include_tasks
+#
+# ============================================================================
+
+---
+# ============================================================================
+# 🎯 EXEMPLE COMPARATIF COMPLET (côte à côte)
+# ============================================================================
+
+- name: "📊 Comparaison complète import vs include"
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+
+  tasks:
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # SECTION 1 : Nom de fichier fixe
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    - name: "📋 Section 1 : Nom de fichier FIXE"
+      ansible.builtin.debug:
+        msg: "=== Les DEUX méthodes fonctionnent ==="
+
+    - name: "📝 Créer un fichier de tâches fixe"
+      ansible.builtin.copy:
+        content: |
+          ---
+          - name: "Tâche depuis fichier fixe"
+            ansible.builtin.debug:
+              msg: "Je viens d'un fichier au nom fixe"
+        dest: "/tmp/taches_fixes.yml"
+
+    # ✅ Fonctionne avec import_tasks
+    - name: "✅ import_tasks avec nom FIXE"
+      ansible.builtin.import_tasks: /tmp/taches_fixes.yml
+
+    # ✅ Fonctionne avec include_tasks
+    - name: "✅ include_tasks avec nom FIXE"
+      ansible.builtin.include_tasks: /tmp/taches_fixes.yml
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # SECTION 2 : Nom de fichier avec VARIABLE
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    - name: "📋 Section 2 : Nom de fichier avec VARIABLE"
+      ansible.builtin.debug:
+        msg: "=== Seul include_tasks fonctionne ==="
+
+    - name: "📝 Créer un fichier selon l'OS"
+      ansible.builtin.copy:
+        content: |
+          ---
+          - name: "Tâche spécifique à l'OS"
+            ansible.builtin.debug:
+              msg: "Configuration pour {{ ansible_os_family }}"
+        dest: "/tmp/taches_{{ ansible_os_family | lower }}.yml"
+
+    # ❌ Ne fonctionne PAS avec import_tasks (décommenté = échec)
+    # - name: "🚫 import_tasks avec VARIABLE (va échouer)"
+    #   ansible.builtin.import_tasks: "/tmp/taches_{{ ansible_os_family | lower }}.yml"
+
+    # ✅ Fonctionne avec include_tasks
+    - name: "✅ include_tasks avec VARIABLE"
+      ansible.builtin.include_tasks: "/tmp/taches_{{ ansible_os_family | lower }}.yml"
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # SECTION 3 : BOUCLE
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    - name: "📋 Section 3 : BOUCLE"
+      ansible.builtin.debug:
+        msg: "=== Seul include_tasks supporte les boucles ==="
+
+    - name: "📝 Créer un fichier pour la boucle"
+      ansible.builtin.copy:
+        content: |
+          ---
+          - name: "Tâche en boucle"
+            ansible.builtin.debug:
+              msg: "Itération pour : {{ item }}"
+        dest: "/tmp/taches_loop.yml"
+
+    # ❌ IMPOSSIBLE avec import_tasks (décommenté = échec)
+    # - name: "🚫 import_tasks avec loop (impossible)"
+    #   ansible.builtin.import_tasks: /tmp/taches_loop.yml
+    #   loop: [un, deux, trois]
+
+    # ✅ Fonctionne avec include_tasks
+    - name: "✅ include_tasks avec loop"
+      ansible.builtin.include_tasks: /tmp/taches_loop.yml
+      loop:
+        - un
+        - deux
+        - trois
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # NETTOYAGE
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    - name: "🧹 Nettoyage des fichiers temporaires"
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/taches_fixes.yml
+        - "/tmp/taches_{{ ansible_os_family | lower }}.yml"
+        - /tmp/taches_loop.yml
+
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    # RÉSUMÉ FINAL
+    # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+    - name: "📊 RÉSUMÉ"
+      ansible.builtin.debug:
+        msg: |
+          
+          ╔══════════════════════════════════════════════════════════════╗
+          ║                  TABLEAU COMPARATIF FINAL                    ║
+          ╠══════════════════════════════════════════════════════════════╣
+          ║                                                              ║
+          ║  CAS D'USAGE          │ import_tasks  │ include_tasks       ║
+          ║  ─────────────────────┼───────────────┼────────────────     ║
+          ║  Nom fixe             │ ✅ OUI        │ ✅ OUI              ║
+          ║  Nom avec variable    │ ❌ NON        │ ✅ OUI              ║
+          ║  Avec boucle (loop)   │ ❌ NON        │ ✅ OUI              ║
+          ║  Tags visibles        │ ✅ OUI        │ ❌ NON              ║
+          ║  Performance          │ ✅ Meilleure  │ ⚠️ Légèrement -     ║
+          ║                                                              ║
+          ║  ════════════════════════════════════════════════════════    ║
+          ║                                                              ║
+          ║  RÈGLE D'OR :                                                ║
+          ║                                                              ║
+          ║  • Fixe et simple    → import_tasks                          ║
+          ║  • Variable/Boucle   → include_tasks                         ║
+          ║                                                              ║
+          ╚══════════════════════════════════════════════════════════════╝
+
+# ============================================================================
+# FIN DE LA DÉMONSTRATION
+# ============================================================================
+

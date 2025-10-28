@@ -3,7 +3,7 @@
   hosts: all
   vars:
     users:
-      - name: riri
+      - name: riri # noqa: name
         shell: /bin/zsh
         password: "{{ 'riri_password' | password_hash(hashtype='sha512', salt='1234') }}"
       - name: fifi
@@ -15,7 +15,7 @@
       - name: donald
         password: "{{ 'donald_password' | password_hash(hashtype='sha512', salt='1234') }}"
   tasks:
-    - name: Installer les dépendances
+    - name: Installer les dépendances # noqa: name
       become: true
       ansible.builtin.package:
         name:
@@ -24,8 +24,7 @@
           - vim
           - zsh
         state: present
-    - name: Créer l'utilisateur app
-      become: true
+    - name: Créer l'utilisateur app # noqa: name
       ansible.builtin.user:
         name: "{{ item.name }}"
         shell: "{{ item.shell | default('/bin/bash') }}"
@@ -33,6 +32,7 @@
         state: present
         password: "{{ item.password | password_hash(hashtype='sha512', salt='1234') }}"
       loop: "{{ users }}"
+      become: true
 
     - name: Créer le groupe sudo
       become: true
@@ -40,24 +40,30 @@
         msg: "{{ item.name }}"
       loop: "{{ user_groups }}"
 
-    # - name: Lancer des commandes en arrière-plan (fire and forget)
-    #   ansible.builtin.command: /bin/sleep {{ item }}
-    #   async: 11 # Temps max d'exécution
-    #   poll: 0 # 0 = pas d'attente, lance et continue
-    #   changed_when: false
-    #   loop: "{{ range(1, 10) | list }}"
-    #   register: long_running_task
+    - name: Lancer des commandes en arrière-plan (fire and forget)
+      ansible.builtin.command: /bin/sleep {{ item }}
+      async: 11 # Temps max d'exécution
+      poll: 0 # 0 = pas d'attente, lance et continue
+      changed_when: false
+      loop: "{{ range(1, 10) | list }}"
+      register: long_running_task
 
-    # - name: Faire autre chose pendant ce temps...
-    #   ansible.builtin.debug:
-    #     msg: "Les tâches s'exécutent en arrière-plan pendant que je fais autre chose !"
+    - name: Faire autre chose pendant ce temps...
+      ansible.builtin.debug:
+        msg: "Les tâches s'exécutent en arrière-plan pendant que je fais autre chose !"
 
-    # - name: Vérifier l'état des tâches async
-    #   ansible.builtin.async_status:
-    #     jid: "{{ item.ansible_job_id }}"
-    #   register: job_result
-    #   until: job_result.finished
-    #   retries: 100
-    #   delay: 1 # Vérifie toutes les 1 seconde
-    #   loop: "{{ long_running_task.results }}" # Itère sur tous les résultats
-    #   when: item.ansible_job_id is defined
+    - name: Vérifier l'état des tâches async
+      ansible.builtin.async_status:
+        jid: "{{ item.ansible_job_id }}"
+      register: job_result
+      until: job_result.finished
+      retries: 100
+      delay: 1 # Vérifie toutes les 1 seconde
+      loop: "{{ long_running_task.results }}" # Itère sur tous les résultats
+      when: item.ansible_job_id is defined
+
+- name: Install nginx
+  hosts: all
+  become: true
+  roles:
+    - { role: geerlingguy.nginx }

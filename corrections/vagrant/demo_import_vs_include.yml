@@ -1,0 +1,270 @@
+---
+# ============================================================================
+# PLAYBOOK PÉDAGOGIQUE : IMPORT_TASKS vs INCLUDE_TASKS
+# ============================================================================
+#
+# Ce playbook démontre les différences critiques entre import_tasks et include_tasks
+# avec des exemples concrets d'ÉCHECS pour chaque méthode.
+#
+# DIFFÉRENCE FONDAMENTALE :
+# -------------------------
+# • import_tasks  : STATIQUE - évalué au PARSE TIME (avant l'exécution)
+# • include_tasks : DYNAMIQUE - évalué au RUN TIME (pendant l'exécution)
+#
+# ============================================================================
+
+- name: "🔴 EXEMPLE 1 : ÉCHEC avec import_tasks (variables dynamiques)"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  tasks:
+    - name: "📝 Définir une variable dynamiquement pendant l'exécution"
+      ansible.builtin.set_fact:
+        fichier_a_charger: "exemple_fichier.yml"
+      
+    # ❌ CECI VA ÉCHOUER avec import_tasks
+    # Raison : import_tasks est évalué AVANT l'exécution, donc la variable 
+    # 'fichier_a_charger' n'existe pas encore au moment du parsing
+    - name: "🚫 ÉCHEC : import_tasks avec variable dynamique"
+      ansible.builtin.import_tasks: "{{ fichier_a_charger }}"
+      # Erreur attendue : "The error appears to be in '...': line X, column Y, 
+      # but may be elsewhere in the file depending on the exact syntax problem.
+      # The variable 'fichier_a_charger' is undefined"
+      ignore_errors: yes
+      tags:
+        - demo_import_fail
+
+    - name: "✅ Solution : utiliser include_tasks à la place"
+      ansible.builtin.debug:
+        msg: "Pour des noms de fichiers dynamiques, utilisez include_tasks !"
+
+---
+- name: "✅ EXEMPLE 2 : SUCCÈS avec include_tasks (variables dynamiques)"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  tasks:
+    - name: "📝 Définir une variable dynamiquement"
+      ansible.builtin.set_fact:
+        environnement: "production"
+      
+    # ✅ CECI FONCTIONNE avec include_tasks
+    # Raison : include_tasks est évalué PENDANT l'exécution, donc la variable existe
+    - name: "✅ SUCCÈS : include_tasks avec variable dynamique"
+      ansible.builtin.include_tasks: "tasks_{{ environnement }}.yml"
+      when: false  # Désactivé pour éviter l'erreur de fichier manquant
+      tags:
+        - demo_include_success
+
+    - name: "💡 Explication"
+      ansible.builtin.debug:
+        msg: "include_tasks évalue la variable AU MOMENT de l'exécution"
+
+---
+- name: "🔴 EXEMPLE 3 : PROBLÈME avec include_tasks (tags invisibles)"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  tasks:
+    - name: "📋 Tâche avant l'include"
+      ansible.builtin.debug:
+        msg: "Cette tâche est visible avec --list-tasks"
+      tags:
+        - visible
+
+    # ⚠️ LIMITATION avec include_tasks
+    # Les tags des tâches À L'INTÉRIEUR du fichier inclus ne sont PAS visibles
+    # lors d'un 'ansible-playbook --list-tasks'
+    - name: "⚠️ LIMITATION : include_tasks et visibilité des tags"
+      ansible.builtin.include_tasks: tasks_avec_tags.yml
+      tags:
+        - mon_include
+      when: false  # Désactivé pour éviter l'erreur de fichier manquant
+
+    - name: "💡 Explication du problème"
+      ansible.builtin.debug:
+        msg: |
+          ⚠️ Avec include_tasks, les tags des tâches incluses ne sont PAS
+          visibles avec --list-tasks ou --list-tags car l'inclusion se fait
+          DYNAMIQUEMENT pendant l'exécution, pas au parsing.
+      tags:
+        - explication
+
+---
+- name: "✅ EXEMPLE 4 : SUCCÈS avec import_tasks (tags visibles)"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  tasks:
+    - name: "📋 Tâche avant l'import"
+      ansible.builtin.debug:
+        msg: "Cette tâche est visible"
+      tags:
+        - visible
+
+    # ✅ AVANTAGE avec import_tasks
+    # Tous les tags des tâches importées SONT visibles avec --list-tasks
+    - name: "✅ AVANTAGE : import_tasks et visibilité des tags"
+      ansible.builtin.import_tasks: tasks_avec_tags.yml
+      tags:
+        - mon_import
+      when: false  # La condition est évaluée pour CHAQUE tâche importée
+
+    - name: "💡 Explication de l'avantage"
+      ansible.builtin.debug:
+        msg: |
+          ✅ Avec import_tasks, TOUTES les tâches importées sont visibles
+          avec --list-tasks car l'import se fait STATIQUEMENT au parsing.
+      tags:
+        - explication
+
+---
+- name: "🔴 EXEMPLE 5 : PROBLÈME avec import_tasks (conditions)"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  vars:
+    installer_nginx: true
+    installer_apache: false
+
+  tasks:
+    # ⚠️ COMPORTEMENT INATTENDU avec import_tasks
+    # La condition 'when' est COPIÉE sur CHAQUE tâche du fichier importé
+    # et non évaluée globalement pour tout l'import
+    - name: "⚠️ COMPORTEMENT : import_tasks avec when"
+      ansible.builtin.import_tasks: installer_webserver.yml
+      when: installer_nginx
+      # La condition sera évaluée pour CHAQUE tâche dans installer_webserver.yml
+      # Pas une évaluation globale "importer ou ne pas importer"
+
+    - name: "💡 Explication"
+      ansible.builtin.debug:
+        msg: |
+          Avec import_tasks, le 'when' est COPIÉ sur chaque tâche importée.
+          Ce n'est pas une décision "importer ou ne pas importer",
+          mais "appliquer la condition à chaque tâche".
+
+---
+- name: "✅ EXEMPLE 6 : SUCCÈS avec include_tasks (conditions)"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  vars:
+    installer_apache: false
+
+  tasks:
+    # ✅ COMPORTEMENT ATTENDU avec include_tasks
+    # La condition 'when' est évaluée GLOBALEMENT : 
+    # si false, le fichier n'est même pas chargé
+    - name: "✅ COMPORTEMENT : include_tasks avec when"
+      ansible.builtin.include_tasks: installer_webserver.yml
+      when: installer_apache
+      # Si la condition est false, le fichier n'est PAS du tout inclus
+
+    - name: "💡 Explication"
+      ansible.builtin.debug:
+        msg: |
+          Avec include_tasks, le 'when' est évalué GLOBALEMENT.
+          Si false, le fichier entier est ignoré (pas chargé du tout).
+
+---
+- name: "🎓 EXEMPLE 7 : Démonstration avec boucles"
+  hosts: localhost
+  connection: local
+  gather_facts: no
+
+  tasks:
+    # ❌ IMPOSSIBLE avec import_tasks
+    # On ne peut PAS utiliser de boucle avec import_tasks
+    # car c'est statique - impossible de savoir combien de fois importer
+    - name: "🚫 IMPOSSIBLE : import_tasks avec loop"
+      ansible.builtin.debug:
+        msg: "import_tasks ne supporte PAS les boucles (loop/with_items)"
+
+    # ✅ POSSIBLE avec include_tasks
+    # On peut boucler sur include_tasks car c'est dynamique
+    - name: "✅ POSSIBLE : include_tasks avec loop"
+      ansible.builtin.include_tasks: configurer_user.yml
+      loop:
+        - alice
+        - bob
+        - charlie
+      loop_control:
+        loop_var: username
+      when: false  # Désactivé pour éviter l'erreur de fichier manquant
+
+# ============================================================================
+# TABLEAU RÉCAPITULATIF : QUAND UTILISER QUOI ?
+# ============================================================================
+#
+# ┌─────────────────────────────┬──────────────────┬──────────────────┐
+# │ CRITÈRE                     │ import_tasks     │ include_tasks    │
+# ├─────────────────────────────┼──────────────────┼──────────────────┤
+# │ Moment d'évaluation         │ Parse time       │ Run time         │
+# │                             │ (statique)       │ (dynamique)      │
+# ├─────────────────────────────┼──────────────────┼──────────────────┤
+# │ Variables dynamiques        │ ❌ Non supporté  │ ✅ Supporté      │
+# │ dans le nom de fichier      │                  │                  │
+# ├─────────────────────────────┼──────────────────┼──────────────────┤
+# │ Visibilité avec             │ ✅ Visible       │ ❌ Non visible   │
+# │ --list-tasks/--list-tags    │                  │                  │
+# ├─────────────────────────────┼──────────────────┼──────────────────┤
+# │ Comportement avec 'when'    │ ⚠️ Copié sur     │ ✅ Évaluation    │
+# │                             │ chaque tâche     │ globale          │
+# ├─────────────────────────────┼──────────────────┼──────────────────┤
+# │ Support des boucles         │ ❌ Non supporté  │ ✅ Supporté      │
+# │ (loop/with_items)           │                  │                  │
+# ├─────────────────────────────┼──────────────────┼──────────────────┤
+# │ Performance                 │ ✅ Meilleure     │ ⚠️ Légèrement    │
+# │                             │ (pas de surcoût) │ plus lent        │
+# ├─────────────────────────────┼──────────────────┼──────────────────┤
+# │ Tags des tâches incluses    │ ✅ Hérités       │ ⚠️ Non hérités   │
+# │                             │                  │                  │
+# ├─────────────────────────────┼──────────────────┼──────────────────┤
+# │ Cas d'usage recommandé      │ Fichiers fixes   │ Fichiers         │
+# │                             │ Réutilisation    │ dynamiques       │
+# │                             │ simple           │ Boucles          │
+# │                             │                  │ Conditions       │
+# └─────────────────────────────┴──────────────────┴──────────────────┘
+#
+# ============================================================================
+# RÈGLE D'OR POUR VOS ÉLÈVES
+# ============================================================================
+#
+# 🎯 UTILISEZ import_tasks SI :
+#    • Le nom du fichier est fixe (pas de variable)
+#    • Vous voulez voir les tags avec --list-tasks
+#    • Vous voulez les meilleures performances
+#    • Vous avez besoin de la validation statique
+#
+# 🎯 UTILISEZ include_tasks SI :
+#    • Le nom du fichier contient une variable (dynamique)
+#    • Vous utilisez une boucle (loop/with_items)
+#    • Vous voulez une condition "tout ou rien" avec when
+#    • Vous chargez conditionnellement des tâches complexes
+#
+# ============================================================================
+# EXERCICES POUR L'ÉLÈVE
+# ============================================================================
+#
+# EXERCICE 1 : Créez tasks_production.yml et tasks_development.yml
+#              Chargez-les dynamiquement avec include_tasks selon une variable
+#              Essayez avec import_tasks et observez l'échec
+#
+# EXERCICE 2 : Créez un fichier de tâches avec plusieurs tags
+#              Comparez la sortie de --list-tags avec import_tasks vs include_tasks
+#
+# EXERCICE 3 : Créez une boucle qui charge des tâches pour plusieurs utilisateurs
+#              Pourquoi import_tasks ne peut pas être utilisé ici ?
+#
+# EXERCICE 4 : Ajoutez une condition 'when: false' sur import_tasks et include_tasks
+#              Observez la différence de comportement
+#
+# ============================================================================
+

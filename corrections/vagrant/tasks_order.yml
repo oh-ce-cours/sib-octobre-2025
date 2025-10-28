@@ -1,0 +1,245 @@
+---
+# ============================================================================
+# PLAYBOOK PÉDAGOGIQUE : Ordre d'exécution des tâches dans Ansible
+# ============================================================================
+#
+# Ce playbook démontre l'ordre exact d'exécution des différents types de tâches
+# dans Ansible. Utilisez ce fichier pour comprendre la séquence complète.
+#
+# ORDRE D'EXÉCUTION :
+# 1. pre_tasks (avant tout)
+# 2. pre_tasks handlers (si notifiés)
+# 3. roles (dans l'ordre défini)
+# 4. tasks (tâches principales)
+# 5. handlers des tasks (si notifiés)
+# 6. post_tasks (après tout)
+# 7. post_tasks handlers (si notifiés)
+# ============================================================================
+
+- name: "Démonstration de l'ordre d'exécution des tâches Ansible"
+  hosts: localhost
+  connection: local
+  gather_facts: true
+
+  # --------------------------------------------------------------------------
+  # PRE_TASKS : S'exécutent EN PREMIER, avant les roles et les tasks
+  # --------------------------------------------------------------------------
+  # Utilisés pour : préparation de l'environnement, vérifications préalables,
+  # installation de dépendances critiques
+  # --------------------------------------------------------------------------
+  pre_tasks:
+    - name: "PRE_TASK 1 : Début de l'exécution"
+      ansible.builtin.debug:
+        msg: "🚀 [ÉTAPE 1] PRE_TASK - Première tâche exécutée du playbook"
+
+    - name: "PRE_TASK 2 : Vérification de l'environnement"
+      ansible.builtin.debug:
+        msg: "🔍 [ÉTAPE 2] PRE_TASK - Vérification de l'environnement"
+
+    - name: "PRE_TASK 3 : Notification d'un handler pre_task"
+      ansible.builtin.debug:
+        msg: "📢 [ÉTAPE 3] PRE_TASK - Cette tâche va notifier un handler pre_task"
+      notify: handler_pre_task
+      changed_when: true
+
+    - name: "PRE_TASK 4 : Dernière pre_task"
+      ansible.builtin.debug:
+        msg: "✅ [ÉTAPE 4] PRE_TASK - Fin des pre_tasks"
+
+  # --------------------------------------------------------------------------
+  # ROLES : S'exécutent APRÈS les pre_tasks
+  # --------------------------------------------------------------------------
+  # Note : Les roles sont décommentés ci-dessous pour la démonstration
+  # Dans un vrai scénario, ils s'exécuteraient ici, entre pre_tasks et tasks
+  # --------------------------------------------------------------------------
+  # roles:
+  #   - role: demo_role
+  #     vars:
+  #       role_message: "Les roles s'exécutent ici, après pre_tasks"
+
+  # --------------------------------------------------------------------------
+  # TASKS : S'exécutent APRÈS les pre_tasks (et les roles si définis)
+  # --------------------------------------------------------------------------
+  # Ce sont les tâches principales du playbook
+  # --------------------------------------------------------------------------
+  tasks:
+    - name: "TASK 1 : Début des tâches principales"
+      ansible.builtin.debug:
+        msg: "⚙️  [ÉTAPE 5] TASK - Début des tâches principales"
+
+    - name: "TASK 2 : Traitement de données"
+      ansible.builtin.debug:
+        msg: "💾 [ÉTAPE 6] TASK - Traitement de données"
+
+    - name: "TASK 3 : Notification d'un handler normal"
+      ansible.builtin.debug:
+        msg: "📢 [ÉTAPE 7] TASK - Cette tâche va notifier un handler normal"
+      notify: handler_principal
+      changed_when: true
+
+    - name: "TASK 4 : Tâche avec condition"
+      ansible.builtin.debug:
+        msg: "🔀 [ÉTAPE 8] TASK - Tâche conditionnelle (exécutée)"
+      when: true
+
+    - name: "TASK 5 : Boucle sur plusieurs éléments"
+      ansible.builtin.debug:
+        msg: "🔄 [ÉTAPE 9.{{ item }}] TASK - Traitement de l'élément {{ item }}"
+      loop:
+        - "A"
+        - "B"
+        - "C"
+
+    - name: "TASK 6 : Notification de plusieurs handlers"
+      ansible.builtin.debug:
+        msg: "📢 [ÉTAPE 10] TASK - Notification de plusieurs handlers"
+      notify:
+        - handler_principal
+        - handler_secondaire
+      changed_when: true
+
+    - name: "TASK 7 : Fin des tâches principales"
+      ansible.builtin.debug:
+        msg: "✅ [ÉTAPE 11] TASK - Fin des tâches principales"
+
+  # --------------------------------------------------------------------------
+  # POST_TASKS : S'exécutent APRÈS toutes les tasks (et leurs handlers)
+  # --------------------------------------------------------------------------
+  # Utilisés pour : nettoyage, notifications finales, vérifications post-déploiement
+  # --------------------------------------------------------------------------
+  post_tasks:
+    - name: "POST_TASK 1 : Début des post_tasks"
+      ansible.builtin.debug:
+        msg: "🏁 [ÉTAPE 14] POST_TASK - Début des tâches de finalisation"
+
+    - name: "POST_TASK 2 : Vérification finale"
+      ansible.builtin.debug:
+        msg: "🔍 [ÉTAPE 15] POST_TASK - Vérification post-déploiement"
+
+    - name: "POST_TASK 3 : Notification d'un handler post_task"
+      ansible.builtin.debug:
+        msg: "📢 [ÉTAPE 16] POST_TASK - Notification d'un handler post_task"
+      notify: handler_post_task
+      changed_when: true
+
+    - name: "POST_TASK 4 : Rapport final"
+      ansible.builtin.debug:
+        msg: "📊 [ÉTAPE 17] POST_TASK - Génération du rapport final"
+
+  # --------------------------------------------------------------------------
+  # HANDLERS : S'exécutent À LA FIN de chaque section (si notifiés)
+  # --------------------------------------------------------------------------
+  # Ordre :
+  # - Handlers des pre_tasks → après les pre_tasks
+  # - Handlers des tasks → après les tasks
+  # - Handlers des post_tasks → après les post_tasks
+  #
+  # IMPORTANT :
+  # - Un handler ne s'exécute qu'UNE SEULE FOIS même s'il est notifié plusieurs fois
+  # - Les handlers s'exécutent dans l'ORDRE où ils sont DÉFINIS (pas notifiés)
+  # - Utilisez 'meta: flush_handlers' pour forcer l'exécution immédiate
+  # --------------------------------------------------------------------------
+  handlers:
+    - name: handler_pre_task # noqa: name
+      ansible.builtin.debug:
+        msg: "🔔 [ÉTAPE 4.1] HANDLER PRE_TASK - Exécuté après les pre_tasks"
+
+    - name: handler_secondaire # noqa: name
+      ansible.builtin.debug:
+        msg: "🔔 [ÉTAPE 13] HANDLER SECONDAIRE - Exécuté après handler_principal"
+
+    - name: handler_principal # noqa: name
+      ansible.builtin.debug:
+        msg: "🔔 [ÉTAPE 12] HANDLER PRINCIPAL - Exécuté après les tasks (notifié 2 fois, n'exécute qu'une fois)"
+
+    - name: handler_post_task # noqa: name
+      ansible.builtin.debug:
+        msg: "🔔 [ÉTAPE 18] HANDLER POST_TASK - Dernier handler exécuté"
+# ============================================================================
+# RÉSUMÉ DE L'ORDRE D'EXÉCUTION
+# ============================================================================
+#
+# 1. PRE_TASKS (étapes 1-4)
+#    └─> HANDLERS des pre_tasks si notifiés (étape 4.1)
+#
+# 2. ROLES (si définis)
+#    └─> HANDLERS des roles si notifiés
+#
+# 3. TASKS (étapes 5-11)
+#    └─> HANDLERS des tasks si notifiés (étapes 12-13)
+#
+# 4. POST_TASKS (étapes 14-17)
+#    └─> HANDLERS des post_tasks si notifiés (étape 18)
+#
+# ============================================================================
+# ASTUCES PÉDAGOGIQUES
+# ============================================================================
+#
+# 1. FORCER L'EXÉCUTION IMMÉDIATE DES HANDLERS :
+#    - name: "Forcer l'exécution des handlers maintenant"
+#      meta: flush_handlers
+#
+# 2. ORDRE DES HANDLERS :
+#    Les handlers s'exécutent dans l'ordre où ils sont DÉFINIS dans la section
+#    'handlers', PAS dans l'ordre où ils sont notifiés
+#
+# 3. HANDLER UNIQUE :
+#    Un handler notifié plusieurs fois ne s'exécute qu'une seule fois
+#
+# 4. ÉCHEC ET HANDLERS :
+#    Si une tâche échoue, les handlers ne sont pas exécutés
+#    (sauf si --force-handlers est utilisé)
+#
+# 5. IMPORT vs INCLUDE :
+#    - import_tasks : statique, traité au parse time
+#    - include_tasks : dynamique, traité au runtime
+#
+# ============================================================================
+# EXERCICES POUR VOS ÉLÈVES
+# ============================================================================
+#
+# EXERCICE 1 : Ajouter un 'meta: flush_handlers' après TASK 3
+#              Observer comment l'ordre change
+#
+# EXERCICE 2 : Créer une tâche qui échoue (fail module)
+#              Observer que les handlers ne s'exécutent pas
+#
+# EXERCICE 3 : Inverser l'ordre des handlers dans la section handlers
+#              Observer que l'ordre d'exécution change
+#
+# EXERCICE 4 : Créer un role simple et l'intégrer dans ce playbook
+#              Observer où il s'exécute dans la séquence
+#
+# ============================================================================
+
+# EXEMPLE DE PLAYBOOK AVANCÉ avec meta: flush_handlers
+# Décommentez cette section pour voir l'impact de flush_handlers
+
+# - name: "Démonstration avancée : flush_handlers"
+#   hosts: localhost
+#   connection: local
+#   gather_facts: no
+#
+#   tasks:
+#     - name: "TASK A : Notifier un handler"
+#       ansible.builtin.debug:
+#         msg: "Notification du handler"
+#       notify: mon_handler
+#       changed_when: true
+#
+#     - name: "TASK B : Avant flush"
+#       ansible.builtin.debug:
+#         msg: "Avant le flush - le handler n'est pas encore exécuté"
+#
+#     - name: "Forcer l'exécution immédiate des handlers"
+#       meta: flush_handlers
+#
+#     - name: "TASK C : Après flush"
+#       ansible.builtin.debug:
+#         msg: "Après le flush - le handler a été exécuté immédiatement"
+#
+#   handlers:
+#     - name: mon_handler
+#       ansible.builtin.debug:
+#         msg: "🔔 HANDLER exécuté immédiatement grâce à flush_handlers"
+

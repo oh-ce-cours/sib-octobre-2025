@@ -1,0 +1,129 @@
+---
+# ============================================================================
+# ✅ EXEMPLE DE SUCCÈS AVEC include_tasks
+# ============================================================================
+# 
+# Ce playbook va RÉUSSIR et montrer les avantages d'include_tasks
+# 
+# OBJECTIF PÉDAGOGIQUE :
+# Montrer qu'on PEUT utiliser une variable définie dynamiquement
+# dans le nom du fichier avec include_tasks
+#
+# ============================================================================
+
+- name: "✅ DÉMONSTRATION : Succès avec include_tasks"
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+
+  tasks:
+    - name: "Étape 1 : Afficher le but de cette démo"
+      ansible.builtin.debug:
+        msg: |
+          🎓 Cette démonstration va RÉUSSIR.
+          
+          OBJECTIF : Montrer qu'include_tasks PEUT utiliser 
+          une variable définie pendant l'exécution.
+
+    - name: "Étape 2 : Définir le nom de fichier selon l'OS"
+      ansible.builtin.set_fact:
+        nom_fichier_os: "taches_{{ ansible_os_family | lower }}.yml"
+      
+    - name: "Étape 3 : Afficher la variable calculée"
+      ansible.builtin.debug:
+        msg: "Le fichier sera : {{ nom_fichier_os }}"
+
+    - name: "Étape 4 : Créer un fichier temporaire de tâches"
+      ansible.builtin.copy:
+        content: |
+          ---
+          - name: "Tâche dynamique 1"
+            ansible.builtin.debug:
+              msg: "✅ Cette tâche vient d'un fichier chargé dynamiquement !"
+          
+          - name: "Tâche dynamique 2"
+            ansible.builtin.debug:
+              msg: "🎯 Le fichier a été choisi selon l'OS : {{ ansible_os_family }}"
+          
+          - name: "Tâche dynamique 3"
+            ansible.builtin.debug:
+              msg: "⚡ include_tasks évalue les variables au RUN TIME"
+        dest: "/tmp/taches_dynamiques.yml"
+
+    # ✅✅✅ CECI VA RÉUSSIR ✅✅✅
+    - name: "Étape 5 : ✅ SUCCÈS - Include avec variable dynamique"
+      ansible.builtin.include_tasks: "/tmp/taches_dynamiques.yml"
+      # 
+      # POURQUOI ÇA MARCHE ?
+      # include_tasks est évalué au RUN TIME (pendant l'exécution)
+      # À ce moment-là, toutes les variables sont définies !
+
+    - name: "Étape 6 : Démonstration avec boucle (impossible avec import)"
+      ansible.builtin.debug:
+        msg: "🔄 On va maintenant faire une boucle (impossible avec import_tasks)"
+
+    - name: "Étape 7 : Créer des fichiers pour la boucle"
+      ansible.builtin.copy:
+        content: |
+          ---
+          - name: "Configuration pour {{ env }}"
+            ansible.builtin.debug:
+              msg: "⚙️ Configuration de l'environnement : {{ env }}"
+        dest: "/tmp/config_{{ item }}.yml"
+      loop:
+        - dev
+        - staging
+        - prod
+      loop_control:
+        loop_var: env
+
+    # ✅ BOUCLE AVEC include_tasks : POSSIBLE
+    - name: "Étape 8 : ✅ Boucler sur plusieurs includes"
+      ansible.builtin.include_tasks: "/tmp/config_{{ item }}.yml"
+      loop:
+        - dev
+        - staging
+        - prod
+      vars:
+        env: "{{ item }}"
+
+    - name: "Étape 9 : Nettoyage des fichiers temporaires"
+      ansible.builtin.file:
+        path: "/tmp/{{ item }}"
+        state: absent
+      loop:
+        - taches_dynamiques.yml
+        - config_dev.yml
+        - config_staging.yml
+        - config_prod.yml
+
+    - name: "Étape 10 : Fin de la démonstration"
+      ansible.builtin.debug:
+        msg: |
+          ✅ SUCCÈS TOTAL !
+          
+          Vous avez vu :
+          1. ✅ Variable dynamique dans le nom de fichier
+          2. ✅ Boucle avec include_tasks
+          3. ✅ Évaluation au run time
+          
+          Tout cela est IMPOSSIBLE avec import_tasks !
+
+# ============================================================================
+# EXPLICATION POUR L'ÉLÈVE
+# ============================================================================
+#
+# CHRONOLOGIE DU SUCCÈS :
+# 
+# 1. Ansible PARSE le playbook
+#    ├─> Il voit include_tasks mais ne le résout PAS encore
+#    └─> ✅ Pas d'erreur, on continue
+#
+# 2. Ansible EXÉCUTE les tâches dans l'ordre
+#    ├─> set_fact définit la variable
+#    ├─> include_tasks est atteint
+#    ├─> À CE MOMENT, la variable est résolue
+#    └─> ✅ Le fichier correct est chargé et exécuté
+#
+# ============================================================================
+
